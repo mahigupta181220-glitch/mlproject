@@ -7,37 +7,40 @@ from sklearn.model_selection import train_test_split
 
 from src.exception import CustomException
 from src.logger import logging
+from src.Components.data_transformation import DataTransformation
+from src.Components.data_transformation import  DataTransformationConfig
 
 
+# ================= CONFIG =================
 @dataclass
 class DataIngestionConfig:
-    train_data_path: str = os.path.join('artifacts', "train.csv")
-    test_data_path: str = os.path.join('artifacts', "test.csv")
-    raw_data_path: str = os.path.join('artifacts', "data.csv")
+    train_data_path: str = os.path.join('artifacts', 'train.csv')
+    test_data_path: str = os.path.join('artifacts', 'test.csv')
+    raw_data_path: str = os.path.join('artifacts', 'data.csv')
 
 
+# ================= INGESTION =================
 class DataIngestion:
     def __init__(self):
         self.ingestion_config = DataIngestionConfig()
 
     def initiate_data_ingestion(self):
-        logging.info("Entered the data ingestion component")
+        logging.info("Entered Data Ingestion component")
 
         try:
-            # ✅ Use absolute path for safety
-            current_dir = os.getcwd()
-            file_path = os.path.join(current_dir, 'notebook', 'data', 'stud.csv')
+            file_path = os.path.join('notebook', 'data', 'stud.csv')
+
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File not found at {file_path}")
 
             df = pd.read_csv(file_path)
             logging.info("Dataset loaded successfully")
 
-            # ✅ Create artifacts folder
             os.makedirs(
                 os.path.dirname(self.ingestion_config.train_data_path),
                 exist_ok=True
             )
 
-            # ✅ Save raw data
             df.to_csv(
                 self.ingestion_config.raw_data_path,
                 index=False,
@@ -52,7 +55,6 @@ class DataIngestion:
                 random_state=42
             )
 
-            # ✅ Save train & test
             train_set.to_csv(
                 self.ingestion_config.train_data_path,
                 index=False,
@@ -76,9 +78,25 @@ class DataIngestion:
             raise CustomException(e, sys)
 
 
-# ✅ Add execution entry point
+# ================= MAIN =================
 if __name__ == "__main__":
-    obj = DataIngestion()
-    train_path, test_path = obj.initiate_data_ingestion()
-    print("Train file saved at:", train_path)
-    print("Test file saved at:", test_path)
+    try:
+        ingestion = DataIngestion()
+
+        train_path, test_path = ingestion.initiate_data_ingestion()
+
+        data_transformation = DataTransformation()
+
+        train_arr, test_arr, preprocessor_path = (
+            data_transformation.initiate_data_transformation(
+                train_path,
+                test_path
+            )
+        )
+
+        print("Train file saved at:", train_path)
+        print("Test file saved at:", test_path)
+        print("Preprocessor saved at:", preprocessor_path)
+
+    except Exception as e:
+        print(e)
